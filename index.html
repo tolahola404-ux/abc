@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat</title>
+  <style>
+    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; background: #111; color: #eee; }
+    #messages { height: 75vh; overflow-y: auto; border: 1px solid #333; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+    .user { text-align: right; margin: 8px 0; }
+    .bot { text-align: left; margin: 8px 0; color: #aef; }
+    .user span { background: #4a4aff; padding: 8px 12px; border-radius: 12px; display: inline-block; }
+    .bot span { background: #222; padding: 8px 12px; border-radius: 12px; display: inline-block; white-space: pre-wrap; }
+    #bar { display: flex; gap: 8px; }
+    #input { flex: 1; padding: 10px; background: #222; border: 1px solid #333; color: #eee; border-radius: 8px; font-size: 15px; }
+    button { padding: 10px 20px; background: #4a4aff; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h3>💬 Chat</h3>
+  <div id="messages"></div>
+  <div id="bar">
+    <input id="input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')send()" />
+    <button onclick="send()">Send</button>
+  </div>
+<script>
+  let key = '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';
+  let history = [];
+
+  function addMsg(role, text) {
+    const div = document.createElement('div');
+    div.className = role;
+    div.innerHTML = '<span>' + text + '</span>';
+    document.getElementById('messages').appendChild(div);
+    document.getElementById('messages').scrollTop = 99999;
+  }
+
+  async function send() {
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    addMsg('user', text);
+    history.push({ role: 'user', content: text });
+    addMsg('bot', '...');
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: history, max_tokens: 1024 })
+    });
+
+    const data = await res.json();
+    const msgs = document.getElementById('messages');
+    msgs.removeChild(msgs.lastChild);
+
+    if (data.error) { addMsg('bot', 'Error: ' + data.error.message); return; }
+
+    const reply = data.choices[0].message.content;
+    history.push({ role: 'assistant', content: reply });
+    addMsg('bot', reply);
+  }
+</script>
+</body>
+</html>
